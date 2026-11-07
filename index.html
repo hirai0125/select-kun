@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f6f5c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>セレクト君</title>
+<link rel="stylesheet" href="leaflet/leaflet.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#f5f3ee;--card:#fff;--ink:#22262a;--sub:#6b7176;--line:#e1ddd4;
+  --main:#1f6f5c;--main2:#e7f2ee;--warn:#c2410c;
+  --g-food:#d9480f;--g-fish:#1971c2;--g-kanko:#2f9e44;--g-shop:#ae3ec9;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:500;background:var(--main);color:#fff;padding:10px 12px 8px;
+  padding-top:calc(10px + env(safe-area-inset-top))}
+header h1{margin:0;font-size:19px;display:flex;align-items:center;gap:8px}
+header h1 .cnt{font-size:12px;font-weight:normal;opacity:.85;margin-left:auto}
+header h1 .syncst{font-size:12px;font-weight:normal;cursor:pointer;background:rgba(255,255,255,.18);border-radius:999px;padding:2px 8px}
+header h1 .syncst:empty{display:none}
+.settings label.l{display:block;font-size:13px;color:var(--sub);font-weight:bold;margin:8px 0 4px}
+.settings input.w{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;background:#fff}
+.settings ol{margin:6px 0 0;padding-left:20px;font-size:13px;line-height:1.7;color:var(--ink)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;
+  border-radius:999px;padding:5px 12px;font-size:14px}
+.chip.on{background:#fff;color:var(--main);font-weight:bold}
+.bar{display:flex;gap:6px;padding:8px 10px;background:var(--bg);position:sticky;top:0;z-index:2}
+.bar input,.bar select{border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;min-width:0}
+.bar input{flex:1}
+main{padding-bottom:84px}
+.view{display:none}.view.on{display:block}
+.list{padding:0 10px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--card);border-radius:12px;border:1px solid var(--line);overflow:hidden;display:flex}
+.card .ph{width:96px;flex:none;background:#ddd center/cover no-repeat;position:relative}
+.card .ph.none{display:flex;align-items:center;justify-content:center;font-size:34px;background:#eee}
+.card .bd{padding:9px 10px;flex:1;min-width:0}
+.card .nm{font-weight:bold;font-size:16px;display:flex;align-items:center;gap:6px}
+.card .nm span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{font-size:11px;border-radius:4px;padding:1px 6px;color:#fff;flex:none}
+.vis{font-size:11px;border-radius:4px;padding:1px 6px;flex:none;border:1px solid}
+.vis.y{color:var(--main);border-color:var(--main);background:var(--main2)}
+.vis.n{color:var(--warn);border-color:#f3c4a8;background:#fff4ed}
+.meta{font-size:13px;color:var(--sub);margin-top:3px;line-height:1.45}
+.acts{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.btn{text-decoration:none;color:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer}
+.btn.main{background:var(--main);border-color:var(--main);color:#fff!important}
+.btn.del{color:#c92a2a;border-color:#f1b0b0}
+.btn.sm{padding:4px 8px;font-size:13px}
+.grp{font-weight:bold;font-size:14px;padding:8px 4px 0;display:flex;align-items:center;gap:6px;color:var(--ink)}
+.grp.g{font-size:16px;padding-top:14px;border-bottom:2px solid;padding-bottom:4px}
+.grp .n{font-weight:normal;color:var(--sub);font-size:12px}
+.bar2{display:flex;gap:6px;padding:0 10px 8px}
+.bar2 select{flex:1;border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;min-width:0}
+.empty{text-align:center;color:var(--sub);padding:40px 20px;line-height:1.8}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:600;background:#fff;border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;padding:8px 0 9px;font-size:12px;color:var(--sub)}
+nav button b{display:block;font-size:21px;line-height:1.2}
+nav button.on{color:var(--main);font-weight:bold}
+#map{height:calc(100vh - 150px);height:calc(100dvh - 150px)}
+.legend{position:absolute;left:10px;bottom:22px;z-index:800;background:rgba(255,255,255,.95);border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);padding:6px 8px;font-size:13px;max-height:45%;overflow:auto}
+.legend .t{font-weight:bold;font-size:12px;color:var(--sub);margin-bottom:2px;cursor:pointer}
+.legend.min .it,.legend.min .note{display:none}
+.legend div.it{display:flex;align-items:center;gap:6px;padding:4px 2px;cursor:pointer;white-space:nowrap}
+.legend div.it.off{opacity:.35}
+.legend .dot{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25);flex:none}
+.legend .n{color:var(--sub);font-size:11px;margin-left:auto;padding-left:6px}
+.legend .note{font-size:11px;color:var(--sub);border-top:1px solid var(--line);margin-top:3px;padding-top:4px;line-height:1.5}
+.leaflet-popup-content{margin:10px 12px;font-size:14px}
+.mpin{position:relative;width:30px;height:46px}
+.mpin svg{position:absolute;left:0;top:0;z-index:0!important;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.mpin i{position:absolute;left:0;top:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  font-style:normal;font-size:15px;line-height:1;z-index:1}
+.mpin .ok{position:absolute;z-index:2;right:-7px;top:-5px;width:17px;height:17px;border-radius:50%;background:#fff;color:#2b8a3e;
+  font-size:12px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.me{width:16px;height:16px;border-radius:50%;background:#1c7ed6;border:3px solid #fff;box-shadow:0 0 0 2px #1c7ed6}
+.form{padding:10px 12px;display:flex;flex-direction:column;gap:12px}
+.form h2{margin:4px 0;font-size:18px}
+.fld label{display:block;font-size:13px;color:var(--sub);margin-bottom:4px;font-weight:bold}
+.fld input[type=text],.fld input[type=tel],.fld input[type=url],.fld input[type=number],.fld input[type=date],.fld select,.fld textarea{
+  width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;background:#fff}
+.fld textarea{min-height:80px;resize:vertical}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+.days{display:flex;gap:4px;flex-wrap:wrap}
+.days label{display:flex;align-items:center;justify-content:center;width:40px;height:36px;border:1px solid var(--line);
+  border-radius:8px;background:#fff;font-size:14px;color:var(--ink);margin:0;font-weight:normal}
+.days input{display:none}
+.days label:has(input:checked){background:var(--main);color:#fff;border-color:var(--main)}
+.seg{display:flex;border:1px solid var(--main);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:0;background:#fff;padding:9px;color:var(--main)}
+.seg button.on{background:var(--main);color:#fff;font-weight:bold}
+.locbox{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.locbox .now{font-size:13px;color:var(--sub)}
+.photos{display:flex;gap:8px;flex-wrap:wrap}
+.photos .p{width:84px;height:84px;border-radius:8px;background:#ddd center/cover;position:relative}
+.photos .p button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:#c92a2a;color:#fff;font-size:14px;line-height:1}
+.photos .add{width:84px;height:84px;border:2px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--sub);background:#fff;text-align:center;cursor:pointer}
+.stars{display:flex;gap:2px}
+.stars button{border:0;background:none;font-size:26px;color:#ccc;padding:0 2px}
+.stars button.on{color:#f59f00}
+.sticky-save{position:sticky;bottom:70px;display:flex;gap:8px;padding:8px 0}
+.sticky-save .btn{flex:1;padding:12px;font-size:16px}
+/* 詳細 */
+.modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center}
+.modal.on{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.sheet .gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;background:#222}
+.sheet .gal img{height:240px;flex:none;scroll-snap-align:start;max-width:100%;object-fit:cover}
+.sheet .in{padding:12px 14px}
+.sheet h2{margin:0 0 6px;font-size:20px}
+.dl{display:grid;grid-template-columns:5.5em 1fr;gap:6px 8px;font-size:15px;margin:10px 0}
+.dl dt{color:var(--sub);font-size:13px;padding-top:2px}
+.dl dd{margin:0;word-break:break-all;white-space:pre-wrap}
+.big-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.big-acts .btn{padding:11px;font-size:15px;text-align:center;text-decoration:none;color:inherit}
+.big-acts .btn.main{color:#fff}
+.open{font-size:12px;border-radius:4px;padding:1px 6px;margin-left:4px}
+.open.o{background:#d3f9d8;color:#2b8a3e}.open.c{background:#eee;color:#777}
+.settings{padding:10px 12px;display:flex;flex-direction:column;gap:14px}
+.settings section{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.settings h3{margin:0 0 6px;font-size:16px}
+.settings p{margin:4px 0 10px;font-size:13px;color:var(--sub);line-height:1.6}
+.settings .acts{gap:8px}
+.genre-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.genre-row input[type=text]{flex:1;border:1px solid var(--line);border-radius:6px;padding:6px;min-width:0}
+.genre-row input[type=color]{width:38px;height:32px;border:0;padding:0;background:none}
+.genre-row input.emo{width:46px;flex:none;text-align:center}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:999px;
+  font-size:14px;z-index:2000;opacity:0;transition:.25s;pointer-events:none;max-width:90%}
+.toast.on{opacity:.92}
+.pickhint{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:800;background:#fff;border-radius:999px;padding:7px 14px;
+  font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.25);display:none;white-space:nowrap}
+.pickhint.on{display:block}
+.mapwrap{position:relative}
+.bgpanel{position:absolute;right:64px;bottom:20px;z-index:850;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.3);
+  padding:8px;display:none;width:min(250px,calc(100vw - 90px))}
+.bgpanel.on{display:block}
+.bgpanel .t{font-size:12px;font-weight:bold;color:var(--sub);margin:0 2px 6px}
+.bgpanel .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.bgpanel button{border:2px solid var(--line);border-radius:8px;background:#fff;padding:0;overflow:hidden;text-align:center;font-size:12px;cursor:pointer}
+.bgpanel button.on{border-color:var(--main);font-weight:bold;color:var(--main)}
+.bgpanel button span{display:block;height:46px;background:#ddd center/cover}
+.bgpanel button b{display:block;padding:4px 2px;font-weight:inherit}
+.maptools{position:absolute;right:10px;bottom:20px;z-index:800;display:flex;flex-direction:column;gap:6px}
+.maptools button{width:44px;height:44px;border-radius:50%;border:0;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:20px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📍 セレクト君 <span class="cnt" id="cnt"></span><span id="syncSt" class="syncst"></span></h1>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main>
+  <!-- 一覧 -->
+  <div class="view" id="v-list">
+    <div class="bar">
+      <input id="q" type="search" placeholder="名前・住所・コメントで検索">
+      <select id="fVis">
+        <option value="">全部</option>
+        <option value="n">まだ</option>
+        <option value="y">行けた</option>
+      </select>
+      <select id="sort">
+        <option value="pref">都道府県順</option>
+        <option value="new">新しい順</option>
+        <option value="dist">近い順</option>
+        <option value="name">名前順</option>
+        <option value="star">評価順</option>
+      </select>
+    </div>
+    <div class="bar2">
+      <select id="fPref"><option value="">都道府県：すべて</option></select>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+
+  <!-- 地図 -->
+  <div class="view on" id="v-map">
+    <div class="mapwrap">
+      <div id="map"></div>
+      <div class="legend" id="legend"></div>
+      <div class="bgpanel" id="bgpanel"></div>
+      <div class="pickhint" id="pickhint">地図をタップして場所を指定 <button class="btn sm" id="pickCancel">やめる</button></div>
+      <div class="maptools">
+        <button id="btnLayer" title="背景地図の切り替え">🗺️</button>
+        <button id="btnKinki" title="近畿全体">🏠</button>
+        <button id="btnFit" title="登録した場所を全部表示">🔲</button>
+        <button id="btnMe" title="現在地">◎</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 登録・編集 -->
+  <div class="view" id="v-edit">
+    <div class="form">
+      <h2 id="editTitle">新しく登録</h2>
+      <div class="fld"><label>ジャンル</label><select id="e-genre"></select></div>
+      <div class="fld"><label>名前 *</label><input type="text" id="e-name" placeholder="例：〇〇食堂"></div>
+
+      <div class="fld">
+        <label>場所</label>
+        <div class="locbox">
+          <div class="now" id="e-locnow">未設定</div>
+          <div class="acts">
+            <button class="btn" id="e-gps">📡 今いる場所</button>
+            <button class="btn" id="e-pick">🗺️ 地図で指定</button>
+            <button class="btn" id="e-locclear">クリア</button>
+          </div>
+          <input type="text" id="e-gurl" placeholder="GoogleマップのURL・座標を貼り付け" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px">
+          <div style="font-size:12px;color:var(--sub);line-height:1.5">Googleマップで場所を開いて「共有→リンクをコピー」したものや「34.45, 135.56」形式の座標を貼ると位置を読み取ります。短縮URLで読めない時はブラウザで開いた後の長いURLを貼ってください。</div>
+          <input type="text" id="e-addr" placeholder="住所（任意）" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;color:var(--sub);font-weight:bold;flex:none">都道府県</span>
+            <select id="e-pref" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:9px;background:#fff"></select></div>
+          <div style="font-size:12px;color:var(--sub)">場所や住所を入れると都道府県は自動で入ります（手動でも選べます）</div>
+        </div>
+      </div>
+
+      <div class="fld"><label>電話番号</label><input type="tel" id="e-tel" placeholder="例：0721-00-0000"></div>
+
+      <div class="fld">
+        <label>営業日（タップで切替）</label>
+        <div class="days" id="e-days"></div>
+      </div>
+      <div class="row">
+        <div class="fld"><label>営業時間</label><input type="text" id="e-hours" placeholder="例：11:00〜14:00 / 17:00〜21:00"></div>
+      </div>
+      <div class="fld"><label>休日</label><input type="text" id="e-holiday" placeholder="例：水曜・第3火曜・年末年始"></div>
+      <div class="fld"><label>金額（目安）</label><input type="text" id="e-price" placeholder="例：ランチ1,000円〜 / 1人3,000円"></div>
+      <div class="fld"><label>Webサイト・SNS等</label><input type="url" id="e-url" placeholder="https://..."></div>
+
+      <div class="fld">
+        <label>行けた？</label>
+        <div class="seg" id="e-vis">
+          <button data-v="n" class="on">まだ行けていない</button>
+          <button data-v="y">行けた</button>
+        </div>
+      </div>
+      <div class="row" id="e-visrow" style="display:none">
+        <div class="fld"><label>行った日</label><input type="date" id="e-vdate"></div>
+        <div class="fld"><label>評価</label><div class="stars" id="e-stars"></div></div>
+      </div>
+
+      <div class="fld"><label>コメント</label><textarea id="e-comment" placeholder="オススメの理由、注意点、駐車場など"></textarea></div>
+
+      <div class="fld">
+        <label>写真</label>
+        <div class="photos" id="e-photos"></div>
+        <input type="file" id="e-file" accept="image/*" multiple hidden>
+      </div>
+
+      <div class="sticky-save">
+        <button class="btn" id="e-cancel">キャンセル</button>
+        <button class="btn main" id="e-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 設定・出力 -->
+  <div class="view" id="v-set">
+    <div class="settings">
+      <section>
+        <h3>☁ PC・スマホの同期（Googleスプレッドシート）</h3>
+        <p>同じURLと合言葉を入れた端末どうしで、登録データ・ジャンル・写真が自動で同じになります。スプレッドシートには「オススメ一覧」シートも作られ、PCで一覧として見られます。</p>
+        <label class="l">ウェブアプリのURL（…/exec）</label>
+        <input class="w" id="sUrl" placeholder="https://script.google.com/macros/s/…/exec">
+        <label class="l">合言葉</label>
+        <input class="w" id="sKey">
+        <div class="acts" style="margin-top:10px">
+          <button class="btn main" id="sSave">保存して接続</button>
+          <button class="btn" id="sNow">今すぐ同期</button>
+        </div>
+        <p id="sInfo" style="margin-top:8px"></p>
+        <div class="acts">
+          <button class="btn sm" id="sScript">📋 Google側に貼るスクリプト</button>
+          <button class="btn sm" id="sHow">❓ 設定のしかた</button>
+          <button class="btn sm del" id="sOff" style="display:none">同期をやめる</button>
+        </div>
+        <ol id="sHowTxt" style="display:none">
+          <li>PCでGoogleドライブを開き、新しいスプレッドシートを作る（名前は「セレクト君データ」など）</li>
+          <li>メニュー「拡張機能 → Apps Script」を開き、中身を全部消して「Google側に貼るスクリプト」を貼り付ける</li>
+          <li>8行目の <b>KEY</b> の「ここに合言葉」を自分で決めた合言葉に変えて保存</li>
+          <li>「デプロイ → 新しいデプロイ」→ 種類「ウェブアプリ」、実行するユーザー「自分」、アクセスできるユーザー「全員」→ デプロイ（初回は権限の承認が出るので許可）</li>
+          <li>表示された「ウェブアプリのURL」をコピーし、このアプリの上の欄にURLと合言葉を入れて「保存して接続」</li>
+          <li>PC・スマホそれぞれで同じURLと合言葉を入れれば同期されます</li>
+        </ol>
+      </section>
+      <section>
+        <h3>Googleマップへエクスポート</h3>
+        <p>KMLファイルを書き出し、パソコンで <b>Googleマイマップ</b>（mymaps.google.com）の「インポート」に読み込むと、スマホのGoogleマップ「保存済み→マップ」に表示され、そこからナビできます。ジャンル別・行けた/まだ の色分け付きです。<br>上の絞り込み（ジャンル・行けた/まだ・検索）がかかった状態の分だけ出力します。</p>
+        <div class="acts">
+          <button class="btn main" id="x-kml">KML出力</button>
+          <button class="btn" id="x-csv">CSV出力</button>
+        </div>
+        <p id="x-scope" style="margin-top:8px"></p>
+      </section>
+      <section>
+        <h3>まとめてルート案内</h3>
+        <p>絞り込み中の「まだ行けていない」場所を、現在地から近い順に最大9か所つないでGoogleマップのルートを開きます。</p>
+        <div class="acts"><button class="btn" id="x-route">🚗 近い順にルートを開く</button></div>
+      </section>
+      <section>
+        <h3>ジャンルの編集</h3>
+        <p>名前・絵文字・色の変更、並び替え（▲▼）、追加ができます。上のジャンル欄の「＋ 追加」や、登録画面のジャンル選択からも追加できます。</p>
+        <div id="genreEdit"></div>
+        <div class="acts" style="margin-top:8px">
+          <button class="btn" id="g-add">＋ ジャンル追加</button>
+          <button class="btn main" id="g-save">ジャンルを保存</button>
+        </div>
+      </section>
+      <section>
+        <h3>バックアップ・機種変更</h3>
+        <p>同期を使わない場合、データはこの端末のブラウザ内だけに保存されます。写真ごと保存したファイルを、別の端末やPCで「読み込み」すると移せます。</p>
+        <div class="acts">
+          <button class="btn" id="b-save">💾 バックアップ保存</button>
+          <button class="btn" id="b-load">📂 読み込み</button>
+          <input type="file" id="b-file" accept=".json,application/json" hidden>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<nav>
+  <button data-v="map" class="on"><b>🗺️</b>地図</button>
+  <button data-v="list"><b>📋</b>一覧</button>
+  <button data-v="edit" id="navAdd"><b>➕</b>登録</button>
+  <button data-v="set"><b>⚙️</b>出力・設定</button>
+</nav>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="leaflet/leaflet.js"></script>
+<script>
+'use strict';
+/* ========== 保存（IndexedDB） ========== */
+const DB_NAME='osusume-cho', STORE='spots';
+let db;
+function openDB(){return new Promise((res,rej)=>{
+  const r=indexedDB.open(DB_NAME,2);
+  r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'});
+    if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv');
+    if(!d.objectStoreNames.contains('photos'))d.createObjectStore('photos');};
+  r.onsuccess=()=>{db=r.result;res()};r.onerror=()=>rej(r.error);
+});}
+function tx(store,mode,fn){return new Promise((res,rej)=>{const t=db.transaction(store,mode);const s=t.objectStore(store);
+  const out=fn(s);t.oncomplete=()=>res(out instanceof IDBRequest?out.result:out);t.onerror=()=>rej(t.error);});}
+const dbAll=()=>tx(STORE,'readonly',s=>s.getAll());
+const dbPut=o=>tx(STORE,'readwrite',s=>s.put(o));
+const dbDel=id=>tx(STORE,'readwrite',s=>s.delete(id));
+const kvGet=k=>tx('kv','readonly',s=>s.get(k));
+const kvSet=(k,v)=>tx('kv','readwrite',s=>s.put(v,k));
+
+/* ========== 写真（IDで管理。同期時はGoogleドライブへ） ========== */
+const photoCache={};
+const newPid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+async function phPut(id,d){photoCache[id]=d;await tx('photos','readwrite',s=>s.put(d,id));}
+async function phGetLocal(id){if(photoCache[id])return photoCache[id];const v=await tx('photos','readonly',s=>s.get(id));if(v)photoCache[id]=v;return v||null;}
+async function phGet(id){
+  const v=await phGetLocal(id);if(v)return v;
+  if(!syncOn())return null;
+  try{const r=await api('photo',{id},'GET');if(r.data){await phPut(id,r.data);return r.data;}}catch(_){}
+  return null;
+}
+async function phDel(id,remote=true){delete photoCache[id];try{await tx('photos','readwrite',s=>s.delete(id));}catch(_){}
+  if(remote&&syncOn())api('delPhoto',{id}).catch(()=>{});}
+function fillPhotos(root){
+  (root||document).querySelectorAll('[data-pid]').forEach(async el=>{
+    if(el.dataset.done)return;el.dataset.done='1';
+    const v=await phGet(el.dataset.pid);if(!v)return;
+    if(el.tagName==='IMG')el.src=v;else{el.style.backgroundImage=`url(${v})`;el.classList.remove('none');const e=el.querySelector('.emo');if(e)e.remove();}
+  });
+}
+// 旧形式（写真を直接持っている）をID形式に変換
+async function ingestPhotos(s){
+  if(!s.photos||!s.photos.some(p=>String(p).startsWith('data:')))return false;
+  const ids=[];for(const p of s.photos){if(String(p).startsWith('data:')){const id=newPid();await phPut(id,p);ids.push(id);}else ids.push(p);}
+  s.photos=ids;return true;
+}
+
+/* ========== 同期（Google スプレッドシート） ========== */
+const CFG_KEY='select-kun-sync';
+let syncCfg=(()=>{try{return JSON.parse(localStorage.getItem(CFG_KEY))||{};}catch(_){return {};}})();
+function saveCfg(){try{localStorage.setItem(CFG_KEY,JSON.stringify(syncCfg));}catch(_){}}
+function syncOn(){return !!(syncCfg.url&&syncCfg.key);}
+let deleted={}, genresAt=0;
+async function api(action,payload={},method='POST'){
+  let r;
+  if(method==='GET')r=await fetch(syncCfg.url+'?'+new URLSearchParams({action,key:syncCfg.key,...payload}));
+  else r=await fetch(syncCfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,key:syncCfg.key,...payload})});
+  const j=await r.json();if(!j.ok)throw new Error(j.error||'error');return j;
+}
+function setSyncSt(t){const el=$('#syncSt');if(el)el.textContent=syncOn()?t:'';}
+async function mergeRemote(R){
+  if(!R||!Array.isArray(R.spots))return false;
+  let changed=false;
+  for(const k in (R.deleted||{}))if(!deleted[k]||R.deleted[k]>deleted[k])deleted[k]=R.deleted[k];
+  const map={};for(const x of spots)map[x.id]=x;
+  for(const r of R.spots){const o=map[r.id];if(!o||(r.updated||0)>(o.updated||0)){map[r.id]=r;changed=true;await dbPut(r);}}
+  for(const id in map){const x=map[id];if(deleted[id]&&deleted[id]>=(x.updated||0)){
+    delete map[id];changed=true;await dbDel(id);for(const p of (x.photos||[]))await phDel(p,false);}}
+  spots=Object.values(map);
+  if(Array.isArray(R.genres)&&R.genres.length&&(R.genresAt||0)>genresAt){genres=R.genres;genresAt=R.genresAt;await kvSet('genres',genres);await kvSet('genresAt',genresAt);changed=true;}
+  await kvSet('deleted',deleted);
+  return changed;
+}
+let syncing=false,syncAgain=false,syncTimer=null,syncErrShown=false;
+function scheduleSync(){if(!syncOn())return;clearTimeout(syncTimer);syncTimer=setTimeout(doSync,1500);}
+async function doSync(manual){
+  if(!syncOn())return false;
+  if(syncing){syncAgain=true;return false;}
+  syncing=true;setSyncSt('☁ 同期中…');
+  try{
+    const r=await api('load',{},'GET');
+    const changed=await mergeRemote(r.data);
+    await api('save',{data:{app:'select-kun',ver:2,spots,genres,genresAt,deleted}});
+    // 写真：この端末にあってGoogle側に無いものを送る
+    const remote=new Set(r.photos||[]);
+    for(const x of spots)for(const id of (x.photos||[])){
+      if(remote.has(id))continue;const v=await phGetLocal(id);if(v){try{await api('putPhoto',{id,data:v});}catch(_){}}
+    }
+    syncCfg.last=Date.now();saveCfg();setSyncSt('☁ 同期済');syncErrShown=false;
+    if(manual)toast('同期しました');
+    if(changed&&!$('#v-edit').classList.contains('on')){gDraft=genres.map(g=>({...g}));renderGenreEdit();renderChips();refresh();}
+    renderSyncInfo();
+    return true;
+  }catch(e){
+    setSyncSt('⚠ 未同期');
+    if(manual||!syncErrShown){toast('同期できませんでした（'+(e.message||'通信エラー')+'）');syncErrShown=true;}
+    return false;
+  }finally{syncing=false;if(syncAgain){syncAgain=false;scheduleSync();}}
+}
+function renderSyncInfo(){
+  if(!$('#sInfo'))return;
+  $('#sUrl').value=syncCfg.url||'';$('#sKey').value=syncCfg.key||'';
+  $('#sInfo').textContent=syncOn()?(syncCfg.last?'最終同期：'+new Date(syncCfg.last).toLocaleString('ja-JP'):'まだ同期していません'):'同期はオフです（この端末だけに保存）';
+  $('#sNow').disabled=!syncOn();$('#sOff').style.display=syncOn()?'':'none';
+}
+
+/* ========== 状態 ========== */
+const DEFAULT_GENRES=[
+  {id:'kanko',name:'観光',emoji:'⛩️',color:'#2f9e44'},
+  {id:'shop',name:'買い物',emoji:'🛍️',color:'#ae3ec9'},
+  {id:'food',name:'食事',emoji:'🍜',color:'#d9480f'},
+  {id:'onsen',name:'温泉・風呂',emoji:'♨️',color:'#e64980'},
+  {id:'fish',name:'釣り',emoji:'🎣',color:'#1971c2'},
+];
+const DOW=['日','月','火','水','木','金','土','祝'];
+const PREFS=['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
+ '新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県',
+ '鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
+const prefIdx=p=>{const i=PREFS.indexOf(p);return i<0?99:i;};
+function prefFromAddr(a){a=a||'';for(const p of PREFS){if(a.includes(p))return p;}
+  for(const p of PREFS){const sh=p.replace(/[都府県]$/,'');if(p!=='北海道'&&new RegExp('^\\s*(〒?[\\d-]+\\s*)?'+sh).test(a))return p;}return '';}
+async function prefFromLatLng(lat,lng){ // 国土地理院 逆ジオコーダ（市区町村コードの上2桁＝都道府県）
+  try{const r=await fetch(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${lat}&lon=${lng}`);
+    const j=await r.json();const cd=j&&j.results&&j.results.muniCd;
+    if(cd){const n=parseInt(String(cd).padStart(5,'0').slice(0,2),10);return {pref:PREFS[n-1]||'',town:j.results.lv01Nm||''};}
+  }catch(_){}return null;}
+let genres=[], spots=[], curGenre='', me=null, editing=null, pickMode=false;
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const G=id=>genres.find(g=>g.id===id)||{id,name:'未分類',emoji:'📌',color:'#868e96'};
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2200);}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ========== 距離・営業中判定 ========== */
+function distKm(a,b){const R=6371,r=x=>x*Math.PI/180;const dLa=r(b.lat-a.lat),dLo=r(b.lng-a.lng);
+  const h=Math.sin(dLa/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function fmtDist(k){return k<1?Math.round(k*1000)+'m':(k<10?k.toFixed(1):Math.round(k))+'km';}
+function todayOpen(s){ // 営業日チェックがある時だけ判定
+  if(!s.days||!s.days.some(Boolean))return null;
+  return !!s.days[new Date().getDay()];
+}
+
+/* ========== ジャンルチップ ========== */
+function renderChips(){
+  const c=$('#chips');
+  c.innerHTML=`<button class="chip ${curGenre===''?'on':''}" data-g="">すべて</button>`+
+    genres.map(g=>`<button class="chip ${curGenre===g.id?'on':''}" data-g="${g.id}">${g.emoji} ${esc(g.name)}</button>`).join('')+
+    `<button class="chip" id="chipAdd">＋ 追加</button>`;
+  c.querySelectorAll('.chip[data-g]').forEach(b=>b.onclick=()=>{curGenre=b.dataset.g;renderChips();refresh();});
+  $('#chipAdd').onclick=async()=>{const g=await addGenrePrompt();if(g){curGenre=g.id;renderChips();refresh();}};
+}
+
+/* ========== 絞り込み ========== */
+function filtered(){
+  const q=$('#q').value.trim().toLowerCase(), v=$('#fVis').value;
+  const fp=$('#fPref').value;
+  let a=spots.filter(s=>(!curGenre||s.genre===curGenre)&&(!v||(v==='y')===!!s.visited)&&(!fp||(s.pref||'')===(fp==='__none'?'':fp))&&
+    (!q||[s.name,s.addr,s.pref,s.comment,s.tel,s.holiday].join(' ').toLowerCase().includes(q)));
+  const so=$('#sort').value;
+  if(so==='dist'&&me)a.sort((x,y)=>(x.lat!=null?distKm(me,x):1e9)-(y.lat!=null?distKm(me,y):1e9));
+  else if(so==='pref'){const gi=id=>{const i=genres.findIndex(g=>g.id===id);return i<0?999:i;};
+    a.sort((x,y)=>gi(x.genre)-gi(y.genre)||prefIdx(x.pref)-prefIdx(y.pref)||x.name.localeCompare(y.name,'ja'));}
+  else if(so==='name')a.sort((x,y)=>x.name.localeCompare(y.name,'ja'));
+  else if(so==='star')a.sort((x,y)=>(y.star||0)-(x.star||0));
+  else a.sort((x,y)=>(y.created||0)-(x.created||0));
+  return a;
+}
+
+/* ========== 一覧 ========== */
+function renderPrefFilter(){
+  const sel=$('#fPref'),cur=sel.value;
+  const used=[...new Set(spots.filter(s=>!curGenre||s.genre===curGenre).map(s=>s.pref||''))].sort((x,y)=>prefIdx(x)-prefIdx(y));
+  sel.innerHTML=`<option value="">都道府県：すべて</option>`+used.map(p=>p?`<option value="${p}">${p}</option>`:`<option value="__none">未設定</option>`).join('');
+  sel.value=[...sel.options].some(o=>o.value===cur)?cur:'';
+}
+function renderList(){
+  renderPrefFilter();
+  const a=filtered();
+  $('#cnt').textContent=`${a.length} / ${spots.length}件`;
+  if(!spots.length){$('#list').innerHTML=`<div class="empty">まだ登録がありません。<br>下の「➕ 登録」からオススメを追加してください。</div>`;return;}
+  if(!a.length){$('#list').innerHTML=`<div class="empty">条件に合う場所がありません。</div>`;return;}
+  const grouped=$('#sort').value==='pref';
+  const cntG={},cntP={};a.forEach(s=>{cntG[s.genre]=(cntG[s.genre]||0)+1;const k=s.genre+'|'+(s.pref||'');cntP[k]=(cntP[k]||0)+1;});
+  let lastG=null,lastP=null;
+  $('#list').innerHTML=a.map(s=>{
+    const g=G(s.genre), op=todayOpen(s);
+    let head='';
+    if(grouped){
+      if(s.genre!==lastG){head+=`<div class="grp g" style="border-color:${g.color};color:${g.color}">${g.emoji} ${esc(g.name)} <span class="n">${cntG[s.genre]}件</span></div>`;lastG=s.genre;lastP=null;}
+      const pk=s.pref||'';if(pk!==lastP){head+=`<div class="grp">📍 ${esc(pk||'都道府県 未設定')} <span class="n">${cntP[s.genre+'|'+pk]}件</span></div>`;lastP=pk;}
+    }
+    const ph=s.photos&&s.photos[0];
+    const d=me&&s.lat!=null?` ・ ${fmtDist(distKm(me,s))}`:'';
+    return head+`<div class="card" data-id="${s.id}">
+      <div class="ph none" ${ph?`data-pid="${ph}"`:''}><span class="emo">${g.emoji}</span></div>
+      <div class="bd">
+        <div class="nm"><span class="tag" style="background:${g.color}">${g.emoji}${esc(g.name)}</span><span class="t">${esc(s.name)}</span></div>
+        <div class="meta">
+          ${!grouped&&s.pref?esc(s.pref)+' ':''}<span class="vis ${s.visited?'y':'n'}">${s.visited?'✓ 行けた':'まだ'}</span>
+          ${s.star?' '+'★'.repeat(s.star):''}
+          ${op===null?'':`<span class="open ${op?'o':'c'}">${op?'今日営業':'今日休み'}</span>`}${d}
+          ${s.price?`<br>💴 ${esc(s.price)}`:''}${s.holiday?`<br>休：${esc(s.holiday)}`:''}
+        </div>
+        <div class="acts">
+          ${s.lat!=null?`<a class="btn sm main" href="${naviUrl(s)}" target="_blank" onclick="event.stopPropagation()">🚗 ナビ</a>`:''}
+          ${s.tel?`<a class="btn sm" href="tel:${esc(s.tel.replace(/[^\d+]/g,''))}" onclick="event.stopPropagation()">📞 電話</a>`:''}
+        </div>
+      </div></div>`;
+  }).join('');
+  $('#list').querySelectorAll('.card').forEach(c=>c.onclick=()=>showDetail(c.dataset.id));
+  fillPhotos($('#list'));
+}
+
+/* ========== Googleマップ URL ========== */
+const naviUrl=s=>`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`;
+const gmapUrl=s=>`https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
+function parseLoc(t){
+  t=decodeURIComponent(t||'');
+  let m;
+  if(m=t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/))return{lat:+m[1],lng:+m[2]};
+  if(m=t.match(/[?&](?:q|query|destination|ll|center)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/))return{lat:+m[1],lng:+m[2]};
+  if(m=t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/))return{lat:+m[1],lng:+m[2]};
+  if(m=t.match(/^\s*(-?\d{1,3}\.\d+)\s*[, ]\s*(-?\d{1,3}\.\d+)\s*$/))return{lat:+m[1],lng:+m[2]};
+  return null;
+}
+function placeNameFromUrl(t){
+  const m=decodeURIComponent(t||'').match(/\/place\/([^/@]+)/);return m?m[1].replace(/\+/g,' '):'';
+}
+
+/* ========== 詳細 ========== */
+function showDetail(id){
+  const s=spots.find(x=>x.id===id);if(!s)return;
+  const g=G(s.genre), op=todayOpen(s);
+  const days=s.days&&s.days.some(Boolean)?DOW.filter((d,i)=>s.days[i]).join('・'):'';
+  const row=(k,v)=>v?`<dt>${k}</dt><dd>${v}</dd>`:'';
+  $('#sheet').innerHTML=`
+    ${s.photos&&s.photos.length?`<div class="gal">${s.photos.map(p=>`<img data-pid="${p}" alt="">`).join('')}</div>`:''}
+    <div class="in">
+      <h2>${g.emoji} ${esc(s.name)}</h2>
+      <div><span class="tag" style="background:${g.color}">${esc(g.name)}</span>
+        <span class="vis ${s.visited?'y':'n'}">${s.visited?'✓ 行けた'+(s.vdate?'（'+s.vdate+'）':''):'まだ行けていない'}</span>
+        ${s.star?' <span style="color:#f59f00">'+'★'.repeat(s.star)+'</span>':''}
+        ${op===null?'':`<span class="open ${op?'o':'c'}">${op?'今日営業':'今日休み'}</span>`}</div>
+      <dl class="dl">
+        ${row('都道府県',esc(s.pref))}
+        ${row('住所',esc(s.addr))}
+        ${row('電話',s.tel?`<a href="tel:${esc(s.tel.replace(/[^\d+]/g,''))}">${esc(s.tel)}</a>`:'')}
+        ${row('営業日',esc(days))}
+        ${row('営業時間',esc(s.hours))}
+        ${row('休日',esc(s.holiday))}
+        ${row('金額',esc(s.price))}
+        ${row('Web',s.url?`<a href="${esc(s.url)}" target="_blank">${esc(s.url)}</a>`:'')}
+        ${row('距離',me&&s.lat!=null?fmtDist(distKm(me,s))+'（直線）':'')}
+        ${row('コメント',esc(s.comment))}
+      </dl>
+      <div class="big-acts">
+        ${s.lat!=null?`<a class="btn main" href="${naviUrl(s)}" target="_blank">🚗 ナビ開始</a>
+        <a class="btn" href="${gmapUrl(s)}" target="_blank">📍 Googleマップで見る</a>`:'<div style="grid-column:1/3;color:var(--sub);font-size:13px">場所が未設定のためナビは使えません（編集で設定）</div>'}
+        ${s.tel?`<a class="btn" href="tel:${esc(s.tel.replace(/[^\d+]/g,''))}">📞 電話する</a>`:''}
+        ${s.lat!=null?`<button class="btn" id="d-onmap">🗺️ 地図で表示</button>`:''}
+        <button class="btn" id="d-vis">${s.visited?'↩ まだに戻す':'✓ 行けた！'}</button>
+        <button class="btn" id="d-share">📤 共有</button>
+        <button class="btn" id="d-edit">✏️ 編集</button>
+        <button class="btn del" id="d-del">🗑 削除</button>
+      </div>
+      <button class="btn" style="width:100%;margin-top:10px" id="d-close">閉じる</button>
+    </div>`;
+  $('#modal').classList.add('on');fillPhotos($('#sheet'));
+  $('#d-close').onclick=closeModal;
+  $('#d-edit').onclick=()=>{closeModal();startEdit(s);};
+  $('#d-del').onclick=async()=>{if(!confirm(`「${s.name}」を削除しますか？`))return;await dbDel(s.id);
+    deleted[s.id]=Date.now();await kvSet('deleted',deleted);for(const p of (s.photos||[]))await phDel(p);
+    spots=spots.filter(x=>x.id!==s.id);closeModal();refresh();toast('削除しました');scheduleSync();};
+  $('#d-vis').onclick=async()=>{s.visited=!s.visited;if(s.visited&&!s.vdate)s.vdate=new Date().toISOString().slice(0,10);s.updated=Date.now();await dbPut(s);refresh();showDetail(s.id);toast(s.visited?'行けた！に変更':'まだ に戻しました');scheduleSync();};
+  $('#d-share').onclick=()=>{
+    const txt=[`【${g.name}】${s.name}`,s.addr,s.tel&&'TEL '+s.tel,s.hours&&'営業 '+s.hours,s.holiday&&'休み '+s.holiday,s.price&&'金額 '+s.price,s.comment,s.url,s.lat!=null&&gmapUrl(s)].filter(Boolean).join('\n');
+    if(navigator.share)navigator.share({title:s.name,text:txt}).catch(()=>{});
+    else{navigator.clipboard.writeText(txt).then(()=>toast('コピーしました'));}
+  };
+  const om=$('#d-onmap');if(om)om.onclick=()=>{closeModal();go('map');setTimeout(()=>{map.setView([s.lat,s.lng],16);markers[s.id]&&markers[s.id].openPopup();},250);};
+}
+function closeModal(){$('#modal').classList.remove('on');}
+$('#modal').onclick=e=>{if(e.target.id==='modal')closeModal();};
+
+/* ========== 地図 ========== */
+const GSI_ATT='<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>';
+const BASEMAPS=[
+  {id:'std',  name:'標準地図',   url:'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', max:18, att:GSI_ATT},
+  {id:'pale', name:'淡色地図',   url:'https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', max:18, att:GSI_ATT},
+  {id:'photo',name:'航空写真',   url:'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', max:18, att:GSI_ATT},
+  {id:'relief',name:'色別標高図',url:'https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png', max:15, min:5, att:GSI_ATT},
+  {id:'blank',name:'白地図',     url:'https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png', max:14, min:5, att:GSI_ATT},
+  {id:'osm',  name:'OpenStreetMap',url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', max:19, att:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'},
+];
+const BG_KEY='select-kun-basemap';
+let baseLayer=null, baseId=(()=>{try{return localStorage.getItem(BG_KEY)||'std';}catch(_){return 'std';}})();
+function setBase(id){
+  const b=BASEMAPS.find(x=>x.id===id)||BASEMAPS[0];baseId=b.id;
+  if(baseLayer)map.removeLayer(baseLayer);
+  baseLayer=L.tileLayer(b.url,{maxZoom:19,maxNativeZoom:b.max,minNativeZoom:b.min||0,attribution:b.att}).addTo(map);
+  baseLayer.bringToBack();
+  try{localStorage.setItem(BG_KEY,b.id);}catch(_){}
+  renderBgPanel();
+}
+function thumb(b){ // 近畿中央あたりのタイル1枚を見本に
+  const z=Math.min(b.max,9),x=Math.floor((135.5+180)/360*2**z),la=34.7*Math.PI/180,
+    y=Math.floor((1-Math.log(Math.tan(la)+1/Math.cos(la))/Math.PI)/2*2**z);
+  return b.url.replace('{z}',z).replace('{x}',x).replace('{y}',y);
+}
+function renderBgPanel(){
+  const el=$('#bgpanel');
+  el.innerHTML=`<div class="t">背景地図</div><div class="grid">`+BASEMAPS.map(b=>
+    `<button class="${b.id===baseId?'on':''}" data-b="${b.id}"><span style="background-image:url(${thumb(b)})"></span><b>${b.name}</b></button>`).join('')+`</div>`;
+  el.querySelectorAll('button').forEach(x=>x.onclick=e=>{e.stopPropagation();setBase(x.dataset.b);setTimeout(()=>el.classList.remove('on'),250);});
+}
+let map, markerLayer, markers={}, meMarker, pickMarker;
+function initMap(){
+  map=L.map('map',{zoomControl:true});
+  showKinki();
+  setBase(baseId);
+  map.on('click',()=>$('#bgpanel').classList.remove('on'));
+  markerLayer=L.layerGroup().addTo(map);
+  map.on('click',e=>{
+    if(!pickMode)return;
+    setEditLoc(e.latlng.lat,e.latlng.lng);
+    pickMode=false;$('#pickhint').classList.remove('on');
+    go('edit');toast('場所を設定しました');
+  });
+  $('#btnLayer').onclick=()=>$('#bgpanel').classList.toggle('on');
+  $('#btnFit').onclick=fitAll;
+  $('#btnKinki').onclick=showKinki;
+  $('#btnMe').onclick=()=>locate(true);
+  $('#pickCancel').onclick=e=>{e.stopPropagation();pickMode=false;$('#pickhint').classList.remove('on');go('edit');};
+}
+function pinIcon(s){
+  const g=G(s.genre);
+  return L.divIcon({className:'',iconSize:[30,46],iconAnchor:[15,46],popupAnchor:[0,-44],
+    html:`<div class="mpin"><svg width="30" height="46" viewBox="0 0 30 46">
+      <path d="M13.6 27 L15 46 L16.4 27 Z" fill="#555"/>
+      <line x1="15" y1="27" x2="15" y2="45" stroke="#999" stroke-width=".6"/>
+      <circle cx="15" cy="15" r="13.5" fill="${g.color}" stroke="#fff" stroke-width="2.5"/>
+      <circle cx="10.5" cy="10" r="3.5" fill="#fff" opacity=".35"/></svg>
+      <i>${g.emoji}</i>${s.visited?'<span class="ok">✓</span>':''}</div>`});
+}
+function renderMap(){
+  if(!map)return;
+  markerLayer.clearLayers();markers={};
+  filtered().forEach(s=>{
+    if(s.lat==null)return;
+    const g=G(s.genre);
+    const m=L.marker([s.lat,s.lng],{icon:pinIcon(s)}).addTo(markerLayer);
+    m.bindPopup(`<b>${g.emoji} ${esc(s.name)}</b><br><span class="vis ${s.visited?'y':'n'}">${s.visited?'✓ 行けた':'まだ'}</span>
+      ${s.price?'<br>💴 '+esc(s.price):''}${s.holiday?'<br>休：'+esc(s.holiday):''}
+      <div class="acts"><a class="btn sm main" href="${naviUrl(s)}" target="_blank">🚗 ナビ</a>
+      <button class="btn sm" onclick="showDetail('${s.id}')">詳細</button></div>`);
+    markers[s.id]=m;
+  });
+}
+function fitAll(){
+  const pts=filtered().filter(s=>s.lat!=null).map(s=>[s.lat,s.lng]);
+  if(me)pts.push([me.lat,me.lng]);
+  if(pts.length===1)map.setView(pts[0],15);else if(pts.length)map.fitBounds(pts,{padding:[30,30]});
+}
+const KINKI=[[33.43,134.25],[35.80,136.95]]; // 近畿2府4県＋三重の範囲
+function showKinki(){map.fitBounds(KINKI);}
+let legendMin=false;
+function renderLegend(){
+  const el=$('#legend');if(!el)return;
+  const v=$('#fVis').value;
+  const cnt={};spots.forEach(s=>{if(s.lat!=null&&(!v||(v==='y')===!!s.visited))cnt[s.genre]=(cnt[s.genre]||0)+1;});
+  el.innerHTML=`<div class="t" id="lgT">${legendMin?'▶ 凡例':'▼ ジャンル（タップで絞り込み）'}</div>`+
+    genres.map(g=>`<div class="it ${curGenre&&curGenre!==g.id?'off':''}" data-g="${g.id}"><span class="dot" style="background:${g.color}"></span>${g.emoji} ${esc(g.name)}<span class="n">${cnt[g.id]||0}</span></div>`).join('')+
+    `<div class="note">✓ 付き＝行けた所</div>`;
+  el.classList.toggle('min',legendMin);
+  $('#lgT').onclick=()=>{legendMin=!legendMin;renderLegend();};
+  el.querySelectorAll('.it').forEach(d=>d.onclick=()=>{curGenre=curGenre===d.dataset.g?'':d.dataset.g;renderChips();refresh();});
+}
+function locate(center){
+  if(!navigator.geolocation){toast('この端末では現在地が使えません');return Promise.resolve(null);}
+  return new Promise(res=>navigator.geolocation.getCurrentPosition(p=>{
+    me={lat:p.coords.latitude,lng:p.coords.longitude};
+    if(map){if(meMarker)meMarker.setLatLng([me.lat,me.lng]);else meMarker=L.marker([me.lat,me.lng],{icon:L.divIcon({className:'',html:'<div class="me"></div>',iconSize:[22,22],iconAnchor:[11,11]}),zIndexOffset:1000}).addTo(map);
+      if(center)map.setView([me.lat,me.lng],15);}
+    renderList();res(me);
+  },err=>{toast('現在地を取得できません（位置情報の許可を確認）');res(null);},{enableHighAccuracy:true,timeout:15000,maximumAge:30000}));
+}
+
+/* ========== 画面切替 ========== */
+function go(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  if(v==='map'){setTimeout(()=>map.invalidateSize(),60);}
+  if(v==='set')updateScope();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  if(b.dataset.v==='edit'&&!(editing&&$('#v-edit').classList.contains('on')))startEdit(null);
+  go(b.dataset.v);
+});
+
+/* ========== 登録・編集 ========== */
+let eLoc=null,ePhotos=[],eVis=false,eStar=0;
+function setEditLoc(lat,lng){
+  eLoc=lat==null?null:{lat:+(+lat).toFixed(7),lng:+(+lng).toFixed(7)};
+  $('#e-locnow').innerHTML=eLoc?`✅ ${eLoc.lat}, ${eLoc.lng} <a href="${gmapUrl(eLoc)}" target="_blank">確認</a>`:'未設定（ナビを使うには場所が必要です）';
+  if(map){if(pickMarker){map.removeLayer(pickMarker);pickMarker=null;}}
+  if(eLoc&&!_loadingEdit){const at={...eLoc};prefFromLatLng(at.lat,at.lng).then(r=>{
+    if(!r||!eLoc||eLoc.lat!==at.lat||eLoc.lng!==at.lng)return;
+    if(r.pref){$('#e-pref').value=r.pref;}
+    if(!$('#e-addr').value.trim()&&r.pref&&r.town)$('#e-addr').value=r.pref+r.town;
+  });}
+}
+let _loadingEdit=false;
+$('#e-addr').addEventListener('input',()=>{const p=prefFromAddr($('#e-addr').value);if(p)$('#e-pref').value=p;});
+function renderDays(sel){
+  $('#e-days').innerHTML=DOW.map((d,i)=>`<label><input type="checkbox" data-i="${i}" ${sel&&sel[i]?'checked':''}>${d}</label>`).join('');
+}
+function renderStars(){
+  $('#e-stars').innerHTML=[1,2,3,4,5].map(n=>`<button type="button" class="${n<=eStar?'on':''}" data-n="${n}">★</button>`).join('');
+  $('#e-stars').querySelectorAll('button').forEach(b=>b.onclick=()=>{eStar=eStar===+b.dataset.n?0:+b.dataset.n;renderStars();});
+}
+function setVis(v){eVis=v;$('#e-vis').querySelectorAll('button').forEach(b=>b.classList.toggle('on',(b.dataset.v==='y')===v));
+  $('#e-visrow').style.display=v?'flex':'none';if(v&&!$('#e-vdate').value)$('#e-vdate').value=new Date().toISOString().slice(0,10);}
+$('#e-vis').querySelectorAll('button').forEach(b=>b.onclick=()=>setVis(b.dataset.v==='y'));
+function renderPhotos(){
+  $('#e-photos').innerHTML=ePhotos.map((p,i)=>`<div class="p" data-pid="${p}"><button data-i="${i}">×</button></div>`).join('')+
+    `<div class="add" id="e-addph">📷<br>写真追加</div>`;
+  $('#e-photos').querySelectorAll('.p button').forEach(b=>b.onclick=()=>{ePhotos.splice(+b.dataset.i,1);renderPhotos();});
+  $('#e-addph').onclick=()=>$('#e-file').click();
+  fillPhotos($('#e-photos'));
+}
+function genreOptions(sel){$('#e-genre').innerHTML=genres.map(g=>`<option value="${g.id}" ${g.id===sel?'selected':''}>${g.emoji} ${esc(g.name)}</option>`).join('')+
+  `<option value="__add">＋ ジャンルを追加…</option>`;$('#e-genre').dataset.prev=sel;}
+$('#e-genre').addEventListener('change',async e=>{
+  if(e.target.value!=='__add'){e.target.dataset.prev=e.target.value;return;}
+  const g=await addGenrePrompt();genreOptions(g?g.id:e.target.dataset.prev);
+});
+/* ジャンル追加（どこからでも） */
+const PALETTE=['#f08c00','#0c8599','#5f3dc4','#c92a2a','#2b8a3e','#1864ab','#862e9c','#e8590c','#495057'];
+async function addGenrePrompt(){
+  const name=(prompt('追加するジャンル名を入力してください（例：キャンプ、ゴルフ、病院）')||'').trim();
+  if(!name)return null;
+  if(genres.some(g=>g.name===name)){toast('同じ名前のジャンルがあります');return genres.find(g=>g.name===name);}
+  const emoji=(prompt('マークにする絵文字（空欄なら📌）','📌')||'').trim()||'📌';
+  const g={id:'g'+uid(),name,emoji,color:PALETTE[genres.length%PALETTE.length]};
+  genres.push(g);await kvSet('genres',genres);genresAt=Date.now();await kvSet('genresAt',genresAt);scheduleSync();
+  gDraft=genres.map(x=>({...x}));renderGenreEdit();renderChips();
+  toast(`「${name}」を追加しました`);return g;
+}
+function startEdit(s){
+  editing=s?s.id:'__new';
+  $('#editTitle').textContent=s?'編集':'新しく登録';
+  genreOptions(s?s.genre:(curGenre||genres[0].id));
+  $('#e-name').value=s?.name||'';$('#e-addr').value=s?.addr||'';$('#e-tel').value=s?.tel||'';
+  $('#e-hours').value=s?.hours||'';$('#e-holiday').value=s?.holiday||'';$('#e-price').value=s?.price||'';
+  $('#e-url').value=s?.url||'';$('#e-comment').value=s?.comment||'';$('#e-gurl').value='';
+  $('#e-vdate').value=s?.vdate||'';
+  renderDays(s?.days);eStar=s?.star||0;renderStars();setVis(!!s?.visited);
+  ePhotos=s?.photos?[...s.photos]:[];renderPhotos();
+  $('#e-pref').innerHTML=`<option value="">（未設定）</option>`+PREFS.map(p=>`<option>${p}</option>`).join('');
+  _loadingEdit=true;setEditLoc(s?.lat??null,s?.lng??null);_loadingEdit=false;
+  $('#e-pref').value=s?.pref||'';
+  go('edit');
+}
+$('#e-gurl').addEventListener('input',e=>{
+  const p=parseLoc(e.target.value);
+  if(p){setEditLoc(p.lat,p.lng);const nm=placeNameFromUrl(e.target.value);if(nm&&!$('#e-name').value)$('#e-name').value=nm;toast('位置を読み取りました');}
+  else if(e.target.value.trim()&&/goo\.gl|maps\.app/.test(e.target.value))toast('短縮URLは位置を読めません。開いた後の長いURLを貼ってください');
+});
+$('#e-gps').onclick=async()=>{toast('現在地を取得中…');const p=await locate(false);if(p){setEditLoc(p.lat,p.lng);toast('今いる場所を設定しました');}};
+$('#e-pick').onclick=()=>{pickMode=true;go('map');$('#pickhint').classList.add('on');
+  setTimeout(()=>{if(eLoc)map.setView([eLoc.lat,eLoc.lng],16);else if(me)map.setView([me.lat,me.lng],15);},120);};
+$('#e-locclear').onclick=()=>setEditLoc(null);
+$('#e-file').onchange=async e=>{
+  for(const f of e.target.files){try{const id=newPid();await phPut(id,await shrink(f));ePhotos.push(id);}catch(_){toast('読み込めない画像がありました');}}
+  e.target.value='';renderPhotos();
+};
+function shrink(file,max=1280,q=0.78){return new Promise((res,rej)=>{
+  const img=new Image(),u=URL.createObjectURL(file);
+  img.onload=()=>{let w=img.naturalWidth,h=img.naturalHeight,r=Math.min(1,max/Math.max(w,h));
+    const c=document.createElement('canvas');c.width=Math.round(w*r);c.height=Math.round(h*r);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',q));};
+  img.onerror=()=>{URL.revokeObjectURL(u);rej();};img.src=u;});}
+$('#e-cancel').onclick=()=>{editing=null;go('map');};
+$('#e-save').onclick=async()=>{
+  const name=$('#e-name').value.trim();
+  if(!name){toast('名前を入力してください');$('#e-name').focus();return;}
+  const old=editing&&editing!=='__new'?spots.find(x=>x.id===editing):null;
+  let url=$('#e-url').value.trim();if(url&&!/^https?:\/\//i.test(url))url='https://'+url;
+  const s={
+    id:old?old.id:uid(),created:old?old.created:Date.now(),updated:Date.now(),
+    genre:$('#e-genre').value,name,addr:$('#e-addr').value.trim(),pref:$('#e-pref').value||prefFromAddr($('#e-addr').value),tel:$('#e-tel').value.trim(),
+    days:[...$('#e-days').querySelectorAll('input')].map(i=>i.checked),
+    hours:$('#e-hours').value.trim(),holiday:$('#e-holiday').value.trim(),price:$('#e-price').value.trim(),
+    url,comment:$('#e-comment').value.trim(),photos:ePhotos,
+    visited:eVis,vdate:eVis?$('#e-vdate').value:'',star:eVis?eStar:0,
+    lat:eLoc?eLoc.lat:null,lng:eLoc?eLoc.lng:null,
+  };
+  try{await dbPut(s);}catch(err){toast('保存に失敗しました（容量不足の可能性）');return;}
+  if(old)for(const p of (old.photos||[]))if(!ePhotos.includes(p))await phDel(p);
+  if(old)spots[spots.indexOf(old)]=s;else spots.push(s);
+  scheduleSync();
+  editing=null;refresh();go('map');toast(old?'更新しました':'登録しました');
+  if(s.lat!=null)setTimeout(()=>{map.setView([s.lat,s.lng],Math.max(map.getZoom(),13));markers[s.id]&&markers[s.id].openPopup();},250);
+};
+
+/* ========== エクスポート ========== */
+function updateScope(){
+  const a=filtered(),n=a.filter(s=>s.lat!=null).length;
+  $('#x-scope').textContent=`出力対象：${a.length}件（位置あり ${n}件）／ ジャンル：${curGenre?G(curGenre).name:'すべて'}・${{'':'全部',n:'まだ',y:'行けた'}[$('#fVis').value]}`;
+}
+function download(name,text,type){
+  const b=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+}
+const xml=s=>String(s??'').replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
+const kmlColor=hex=>{const h=hex.replace('#','');return 'ff'+h.slice(4,6)+h.slice(2,4)+h.slice(0,2);};
+function stamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`;}
+function descOf(s){
+  const days=s.days&&s.days.some(Boolean)?DOW.filter((d,i)=>s.days[i]).join('・'):'';
+  return [
+    `ジャンル：${G(s.genre).name}`,
+    s.visited?`行けた${s.vdate?'（'+s.vdate+'）':''}${s.star?' '+'★'.repeat(s.star):''}`:'まだ行けていない',
+    s.pref&&`都道府県：${s.pref}`, s.addr&&`住所：${s.addr}`, s.tel&&`電話：${s.tel}`, days&&`営業日：${days}`, s.hours&&`営業時間：${s.hours}`,
+    s.holiday&&`休日：${s.holiday}`, s.price&&`金額：${s.price}`, s.url&&`Web：${s.url}`, s.comment&&`コメント：${s.comment}`,
+    `ナビ：${naviUrl(s)}`
+  ].filter(Boolean);
+}
+$('#x-kml').onclick=()=>{
+  const a=filtered().filter(s=>s.lat!=null).sort((x,y)=>prefIdx(x.pref)-prefIdx(y.pref)||x.name.localeCompare(y.name,'ja'));
+  if(!a.length){toast('位置が設定された場所がありません');return;}
+  const styles=genres.concat([G('__none')]).map(g=>['y','n'].map(v=>`
+  <Style id="${g.id}_${v}"><IconStyle><color>${kmlColor(g.color)}</color><scale>1.1</scale>
+    <Icon><href>https://maps.google.com/mapfiles/kml/paddle/${v==='y'?'wht-circle':'wht-blank'}.png</href></Icon></IconStyle>
+    <LabelStyle><scale>0.9</scale></LabelStyle></Style>`).join('')).join('');
+  const byG={};a.forEach(s=>(byG[s.genre]=byG[s.genre]||[]).push(s));
+  const folders=Object.keys(byG).map(gid=>{const g=G(gid);return `
+  <Folder><name>${xml(g.emoji+' '+g.name)}</name>${byG[gid].map(s=>`
+    <Placemark><name>${xml((s.visited?'✓':'')+s.name)}</name>
+      <description>${xml(descOf(s).join('\n'))}</description>
+      <styleUrl>#${genres.some(x=>x.id===gid)?gid:'__none'}_${s.visited?'y':'n'}</styleUrl>
+      <ExtendedData>
+        <Data name="ジャンル"><value>${xml(g.name)}</value></Data>
+        <Data name="都道府県"><value>${xml(s.pref)}</value></Data>
+        <Data name="行けた"><value>${s.visited?'行けた':'まだ'}</value></Data>
+        <Data name="電話"><value>${xml(s.tel)}</value></Data>
+        <Data name="営業時間"><value>${xml(s.hours)}</value></Data>
+        <Data name="休日"><value>${xml(s.holiday)}</value></Data>
+        <Data name="金額"><value>${xml(s.price)}</value></Data>
+        <Data name="Web"><value>${xml(s.url)}</value></Data>
+        <Data name="コメント"><value>${xml(s.comment)}</value></Data>
+      </ExtendedData>
+      <Point><coordinates>${s.lng},${s.lat},0</coordinates></Point></Placemark>`).join('')}
+  </Folder>`;}).join('');
+  const k=`<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>セレクト君 ${stamp()}</name>${styles}${folders}
+</Document></kml>`;
+  download(`select-kun_${stamp()}.kml`,k,'application/vnd.google-earth.kml+xml');
+  toast(`${a.length}件をKML出力しました`);
+};
+$('#x-csv').onclick=()=>{
+  const a=filtered();if(!a.length){toast('出力する場所がありません');return;}
+  const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const head=['名前','ジャンル','都道府県','行けた','行った日','評価','緯度','経度','住所','電話','営業日','営業時間','休日','金額','Web','コメント','ナビURL'];
+  const rows=a.map(s=>[s.name,G(s.genre).name,s.pref,s.visited?'行けた':'まだ',s.vdate,s.star||'',s.lat??'',s.lng??'',s.addr,s.tel,
+    s.days&&s.days.some(Boolean)?DOW.filter((d,i)=>s.days[i]).join('・'):'',s.hours,s.holiday,s.price,s.url,s.comment,s.lat!=null?naviUrl(s):''].map(q).join(','));
+  download(`select-kun_${stamp()}.csv`,'﻿'+[head.map(q).join(','),...rows].join('\r\n'),'text/csv');
+  toast(`${a.length}件をCSV出力しました`);
+};
+$('#x-route').onclick=async()=>{
+  let a=filtered().filter(s=>s.lat!=null&&!s.visited);
+  if(!a.length){toast('まだ行けていない場所（位置あり）がありません');return;}
+  const p=me||await locate(false);
+  // 近い順に貪欲法で並べる
+  const order=[];let cur=p||a[0];const rest=[...a];
+  while(rest.length&&order.length<9){rest.sort((x,y)=>distKm(cur,x)-distKm(cur,y));cur=rest.shift();order.push(cur);}
+  const dest=order.pop();
+  let u=`https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}`;
+  if(order.length)u+=`&waypoints=${order.map(s=>s.lat+','+s.lng).join('%7C')}`;
+  window.open(u,'_blank');
+};
+
+/* ========== ジャンル編集 ========== */
+let gDraft=[];
+function renderGenreEdit(){
+  $('#genreEdit').innerHTML=gDraft.map((g,i)=>`<div class="genre-row">
+    <input type="text" class="emo" value="${esc(g.emoji)}" data-i="${i}" data-k="emoji">
+    <input type="text" value="${esc(g.name)}" data-i="${i}" data-k="name">
+    <input type="color" value="${g.color}" data-i="${i}" data-k="color">
+    <button class="btn sm" data-up="${i}" ${i?'':'disabled'}>▲</button>
+    <button class="btn sm" data-dn="${i}" ${i<gDraft.length-1?'':'disabled'}>▼</button>
+    <button class="btn sm del" data-del="${i}">削除</button></div>`).join('');
+  $('#genreEdit').querySelectorAll('[data-up],[data-dn]').forEach(b=>b.onclick=()=>{
+    const i=+(b.dataset.up??b.dataset.dn),j=b.dataset.up!=null?i-1:i+1;[gDraft[i],gDraft[j]]=[gDraft[j],gDraft[i]];renderGenreEdit();});
+  $('#genreEdit').querySelectorAll('input').forEach(inp=>inp.oninput=()=>{gDraft[inp.dataset.i][inp.dataset.k]=inp.value;});
+  $('#genreEdit').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    const g=gDraft[+b.dataset.del],n=spots.filter(s=>s.genre===g.id).length;
+    if(gDraft.length<=1){toast('ジャンルは1つ以上必要です');return;}
+    if(n&&!confirm(`「${g.name}」には${n}件登録があります。削除すると「未分類」になります。よろしいですか？`))return;
+    gDraft.splice(+b.dataset.del,1);renderGenreEdit();});
+}
+$('#g-add').onclick=()=>{gDraft.push({id:'g'+uid(),name:'新しいジャンル',emoji:'📌',color:'#495057'});renderGenreEdit();};
+$('#g-save').onclick=async()=>{
+  if(gDraft.some(g=>!g.name.trim())){toast('ジャンル名が空です');return;}
+  genres=gDraft.map(g=>({...g,name:g.name.trim(),emoji:g.emoji.trim()||'📌'}));
+  await kvSet('genres',genres);genresAt=Date.now();await kvSet('genresAt',genresAt);scheduleSync();
+  if(curGenre&&!genres.some(g=>g.id===curGenre))curGenre='';
+  renderChips();refresh();toast('ジャンルを保存しました');
+};
+
+/* ========== バックアップ ========== */
+$('#b-save').onclick=async()=>{
+  const out=[];for(const x of spots){const ph=[];for(const id of (x.photos||[])){const v=await phGet(id);if(v)ph.push(v);}out.push({...x,photos:ph});}
+  download(`select-kun_backup_${stamp()}.json`,JSON.stringify({app:'select-kun',ver:1,saved:new Date().toISOString(),genres,spots:out}),'application/json');
+  toast('バックアップを保存しました');
+};
+$('#b-load').onclick=()=>$('#b-file').click();
+$('#b-file').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const d=JSON.parse(await f.text());
+    if(!Array.isArray(d.spots))throw 0;
+    const mode=confirm(`${d.spots.length}件のデータがあります。\n\nOK＝今のデータに追加・上書き（同じ場所は新しい方）\nキャンセル＝読み込みを中止`);
+    if(!mode)return;
+    if(Array.isArray(d.genres))for(const g of d.genres)if(!genres.some(x=>x.id===g.id))genres.push(g);
+    await kvSet('genres',genres);genresAt=Date.now();await kvSet('genresAt',genresAt);
+    for(const s of d.spots){const o=spots.find(x=>x.id===s.id);if(!o||(s.updated||0)>=(o.updated||0)){
+      await ingestPhotos(s);s.updated=Math.max(s.updated||0,(o&&o.updated)||0)+1;delete deleted[s.id];
+      await dbPut(s);if(o)spots[spots.indexOf(o)]=s;else spots.push(s);}}
+    await kvSet('deleted',deleted);
+    renderChips();refresh();gDraft=genres.map(g=>({...g}));renderGenreEdit();toast('読み込みました');scheduleSync();
+  }catch(_){toast('バックアップファイルを読めませんでした');}
+};
+
+/* ========== 共通 ========== */
+function refresh(){renderList();renderMap();renderLegend();if($('#v-set').classList.contains('on'))updateScope();}
+['#q','#fVis','#sort','#fPref'].forEach(s=>$(s).addEventListener('input',()=>{
+  if(s==='#sort'&&$('#sort').value==='dist'&&!me)locate(false).then(refresh);refresh();}));
+
+(async()=>{
+  await openDB();
+  genres=await kvGet('genres');
+  // 旧版の初期ジャンル（4つ）のままなら新しい並び・温泉入りに更新
+  if(!genres||(!genres.some(g=>g.id==='onsen')&&genres.every(g=>['food','fish','kanko','shop'].includes(g.id))))genres=DEFAULT_GENRES.map(g=>({...g}));
+  spots=(await dbAll())||[];
+  deleted=(await kvGet('deleted'))||{};genresAt=(await kvGet('genresAt'))||0;
+  for(const s of spots){if(await ingestPhotos(s))await dbPut(s);}
+  for(const s of spots){if(!s.pref&&s.addr){const p=prefFromAddr(s.addr);if(p){s.pref=p;await dbPut(s);}}}
+  // 位置はあるのに都道府県が未設定のものは、地理院の逆ジオコーダで補完（裏で順番に）
+  (async()=>{let ch=0;for(const s of spots.filter(x=>!x.pref&&x.lat!=null)){const r=await prefFromLatLng(s.lat,s.lng);
+    if(r&&r.pref){s.pref=r.pref;await dbPut(s);ch++;}}if(ch)refresh();})();
+  gDraft=genres.map(g=>({...g}));renderGenreEdit();
+  renderChips();
+  if(window.L)initMap();else toast('地図の読み込みに失敗しました（電波を確認）');
+  refresh();
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+  locate(false);
+  // 同期の設定画面
+  renderSyncInfo();setSyncSt(syncCfg.last?'☁ 同期済':'☁');
+  $('#syncSt').onclick=()=>doSync(true);
+  $('#sSave').onclick=async()=>{
+    const url=$('#sUrl').value.trim(),key=$('#sKey').value.trim();
+    if(!/^https:\/\/script\.google(usercontent)?\.com\/.+\/exec$/.test(url)){toast('URLは https://script.google.com/…/exec の形で入れてください');return;}
+    if(!key){toast('合言葉を入れてください');return;}
+    syncCfg={url,key};saveCfg();
+    try{await api('ping');toast('接続できました。同期します');await doSync(true);}
+    catch(e){toast('接続できませんでした（'+(e.message||'通信エラー')+'）');setSyncSt('⚠ 未同期');}
+    renderSyncInfo();
+  };
+  $('#sNow').onclick=()=>doSync(true);
+  $('#sOff').onclick=e=>{
+    if(e.target.dataset.arm!=='1'){e.target.dataset.arm='1';e.target.textContent='もう一度押すと同期をやめます';return;}
+    e.target.dataset.arm='';e.target.textContent='同期をやめる';
+    syncCfg={};saveCfg();setSyncSt('');renderSyncInfo();toast('同期をやめました（この端末のデータは残ります）');
+  };
+  $('#sHow').onclick=()=>{const o=$('#sHowTxt');o.style.display=o.style.display==='none'?'block':'none';};
+  $('#sScript').onclick=()=>{
+    const code=$('#gasCode').textContent.trim();
+    $('#sheet').innerHTML=`<div class="in"><h2 style="font-size:17px">Google側に貼るスクリプト</h2>
+      <p style="font-size:13px;color:var(--sub);line-height:1.6">Googleスプレッドシートの「拡張機能 → Apps Script」に全部貼り付け、KEY を合言葉に変えて、ウェブアプリとしてデプロイします。</p>
+      <textarea id="gasTxt" readonly style="width:100%;height:220px;font-size:11px;font-family:monospace;border:1px solid var(--line);border-radius:8px">${esc(code)}</textarea>
+      <div class="big-acts"><button class="btn" id="gClose">閉じる</button><button class="btn main" id="gCopy">📋 コピー</button></div></div>`;
+    $('#modal').classList.add('on');
+    $('#gClose').onclick=closeModal;
+    $('#gCopy').onclick=async()=>{try{await navigator.clipboard.writeText(code);toast('コピーしました');}catch(_){$('#gasTxt').select();toast('選択しました。長押しでコピーしてください');}};
+  };
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleSync();});
+  if(syncOn())doSync();
+  if('serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(_){}}
+})();
+</script>
+<script type="text/plain" id="gasCode">
+/**
+ * セレクト君 同期用スクリプト（Google スプレッドシートに貼り付けて使います）
+ * 1. 下の KEY を好きな合言葉に変える（アプリの設定にも同じ合言葉を入れます）
+ * 2. デプロイ → 新しいデプロイ → 種類「ウェブアプリ」
+ *    実行するユーザー：自分　／　アクセスできるユーザー：全員
+ * 3. 表示された「ウェブアプリのURL」（…/exec）をアプリの設定に入れる
+ */
+const KEY = 'ここに合言葉';
+
+const DATA_FILE = 'select-kun-data.json';   // 全データ（スプレッドシートと同じフォルダに作られます）
+const PHOTO_FOLDER = 'select-kun-photos';   // 写真の保存フォルダ
+const SHEET_NAME = 'オススメ一覧';           // 見る用の一覧シート
+
+function doGet(e) { return handle_(e.parameter || {}); }
+function doPost(e) {
+  var p = {};
+  try { p = JSON.parse(e.postData.contents); } catch (err) {}
+  return handle_(p);
+}
+
+function out_(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handle_(p) {
+  if (!p.key || p.key !== KEY) return out_({ ok: false, error: '合言葉が違います' });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  try {
+    switch (p.action) {
+      case 'ping':     return out_({ ok: true });
+      case 'load':     return out_({ ok: true, data: readData_(), photos: listPhotos_() });
+      case 'save':     writeData_(p.data); writeSheet_(p.data); return out_({ ok: true });
+      case 'putPhoto': putPhoto_(p.id, p.data); return out_({ ok: true });
+      case 'photo':    return out_({ ok: true, data: getPhoto_(p.id) });
+      case 'delPhoto': delPhoto_(p.id); return out_({ ok: true });
+    }
+    return out_({ ok: false, error: 'unknown action' });
+  } catch (err) {
+    return out_({ ok: false, error: String(err) });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ---------- 保存場所 ---------- */
+function folder_() {
+  var ss = SpreadsheetApp.getActive();
+  var parents = DriveApp.getFileById(ss.getId()).getParents();
+  return parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+}
+function photoFolder_() {
+  var f = folder_(), it = f.getFoldersByName(PHOTO_FOLDER);
+  return it.hasNext() ? it.next() : f.createFolder(PHOTO_FOLDER);
+}
+
+/* ---------- データ ---------- */
+function readData_() {
+  var it = folder_().getFilesByName(DATA_FILE);
+  if (!it.hasNext()) return null;
+  return JSON.parse(it.next().getBlob().getDataAsString('UTF-8'));
+}
+function writeData_(d) {
+  var json = JSON.stringify(d), f = folder_(), it = f.getFilesByName(DATA_FILE);
+  if (it.hasNext()) it.next().setContent(json);
+  else f.createFile(DATA_FILE, json, MimeType.PLAIN_TEXT);
+}
+
+/* ---------- 写真 ---------- */
+function photoFile_(id) {
+  var it = photoFolder_().getFilesByName(id + '.jpg');
+  return it.hasNext() ? it.next() : null;
+}
+function listPhotos_() {
+  var ids = [], it = photoFolder_().getFiles();
+  while (it.hasNext()) {
+    var f = it.next();
+    if (!f.isTrashed()) ids.push(f.getName().replace(/\.jpg$/, ''));
+  }
+  return ids;
+}
+function putPhoto_(id, dataUrl) {
+  if (!id || !dataUrl || photoFile_(id)) return;
+  var b64 = String(dataUrl).split(',')[1];
+  var blob = Utilities.newBlob(Utilities.base64Decode(b64), 'image/jpeg', id + '.jpg');
+  photoFolder_().createFile(blob);
+}
+function getPhoto_(id) {
+  var f = photoFile_(id);
+  return f ? 'data:image/jpeg;base64,' + Utilities.base64Encode(f.getBlob().getBytes()) : null;
+}
+function delPhoto_(id) {
+  var f = photoFile_(id);
+  if (f) f.setTrashed(true);
+}
+
+/* ---------- 見る用の一覧シート ---------- */
+var PREFS_ = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
+  '新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県',
+  '鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
+var DOW_ = ['日','月','火','水','木','金','土','祝'];
+function writeSheet_(d) {
+  if (!d || !d.spots) return;
+  var genres = d.genres || [];
+  var gName = function (id) { for (var i = 0; i < genres.length; i++) if (genres[i].id === id) return genres[i].name; return '未分類'; };
+  var gIdx = function (id) { for (var i = 0; i < genres.length; i++) if (genres[i].id === id) return i; return 999; };
+  var pIdx = function (p) { var i = PREFS_.indexOf(p || ''); return i < 0 ? 99 : i; };
+  var spots = d.spots.slice().sort(function (a, b) {
+    return gIdx(a.genre) - gIdx(b.genre) || pIdx(a.pref) - pIdx(b.pref) || String(a.name).localeCompare(String(b.name), 'ja');
+  });
+  var rows = [['ジャンル', '都道府県', '名前', '行けた', '行った日', '評価', '住所', '電話', '営業日', '営業時間', '休日', '金額', 'Web', 'コメント', '緯度', '経度', 'Googleマップ', '写真']];
+  spots.forEach(function (s) {
+    var days = (s.days || []).map(function (v, i) { return v ? DOW_[i] : ''; }).filter(String).join('・');
+    rows.push([gName(s.genre), s.pref || '', s.name || '', s.visited ? '行けた' : 'まだ', s.vdate || '', s.star ? '★'.repeat(s.star) : '',
+      s.addr || '', s.tel ? "'" + s.tel : '', days, s.hours || '', s.holiday || '', s.price || '', s.url || '', s.comment || '',
+      s.lat == null ? '' : s.lat, s.lng == null ? '' : s.lng,
+      s.lat == null ? '' : 'https://www.google.com/maps/search/?api=1&query=' + s.lat + ',' + s.lng,
+      (s.photos || []).length || '']);
+  });
+  var ss = SpreadsheetApp.getActive();
+  var sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  sh.clear();
+  sh.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+  sh.setFrozenRows(1);
+  sh.getRange(1, 1, 1, rows[0].length).setFontWeight('bold').setBackground('#dcefe8');
+}
+</script>
+</body>
+</html>
