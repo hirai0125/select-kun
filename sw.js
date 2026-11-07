@@ -1,8 +1,7 @@
 // セレクト君：オフラインでも開けるようにするためのキャッシュ
-const CACHE = "select-kun-v3";
+const CACHE = "select-kun-v4";
 const TILES = "select-kun-tiles";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png",
-  "./leaflet/leaflet.js", "./leaflet/leaflet.css", "./leaflet/images/marker-icon.png", "./leaflet/images/layers.png"];
+const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => Promise.all(FILES.map(f => c.add(f).catch(() => {}))))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== TILES).map(k => caches.delete(k))))); self.clients.claim(); });
 self.addEventListener("fetch", e => {
